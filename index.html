@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mujaka — We Find the Unfindable</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #08080f;
+      --bg-2:         #0d0d18;
+      --text:         #e8e8f0;
+      --text-dim:     #8888a8;
+      --gold:         #c9a84c;
+      --gold-dim:     #8a6e2e;
+      --indigo:       #6c63ff;
+      --indigo-dim:   #3d3899;
+      --glass-bg:     rgba(255,255,255,0.035);
+      --glass-border: rgba(255,255,255,0.08);
+      --radius:       16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    h1 { font-size: clamp(3rem, 8vw, 7rem); font-weight: 300; letter-spacing: -0.02em; line-height: 1; }
+    h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 300; letter-spacing: -0.02em; }
+    h3 { font-size: 1rem; font-weight: 500; letter-spacing: 0.06em; }
+
+    .label {
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 500;
+    }
+
+    /* ── Particle Canvas ── */
+    #canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.35;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 4rem;
+      background: linear-gradient(to bottom, rgba(8,8,15,0.9), transparent);
+      transition: backdrop-filter 0.4s, background 0.4s;
+    }
+    nav.scrolled {
+      backdrop-filter: blur(18px);
+      background: rgba(8,8,15,0.85);
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 200;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .logo span { color: var(--gold); }
+
+    .nav-cta {
+      font-size: 0.78rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-decoration: none;
+      border: 1px solid var(--gold-dim);
+      padding: 0.5rem 1.4rem;
+      border-radius: 2rem;
+      transition: background 0.3s, color 0.3s, border-color 0.3s;
+    }
+    .nav-cta:hover {
+      background: var(--gold);
+      color: var(--bg);
+      border-color: var(--gold);
+    }
+
+    /* ── Sections ── */
+    section { position: relative; z-index: 1; }
+
+    /* ── Hero ── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 6rem;
+    }
+
+    .hero-glow {
+      position: absolute;
+      width: 60vw; height: 60vw;
+      max-width: 800px; max-height: 800px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(108,99,255,0.12) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      opacity: 0;
+      animation: fadeUp 1s 0.3s forwards;
+    }
+    .hero-eyebrow::before, .hero-eyebrow::after {
+      content: '';
+      width: 40px; height: 1px;
+      background: var(--gold-dim);
+    }
+
+    .hero-title {
+      opacity: 0;
+      animation: fadeUp 1s 0.6s forwards;
+      background: linear-gradient(135deg, #ffffff 30%, #9d9dc8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      max-width: 520px;
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      margin-top: 2rem;
+      font-weight: 300;
+      opacity: 0;
+      animation: fadeUp 1s 0.9s forwards;
+    }
+
+    .hero-actions {
+      margin-top: 3.5rem;
+      display: flex;
+      gap: 1rem;
+      opacity: 0;
+      animation: fadeUp 1s 1.2s forwards;
+    }
+
+    .btn-primary {
+      display: inline-block;
+      padding: 0.85rem 2.4rem;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+      color: #0a0808;
+      border-radius: 2rem;
+      text-decoration: none;
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 0 30px rgba(201,168,76,0.2);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px rgba(201,168,76,0.35);
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 2rem;
+      border: 1px solid var(--glass-border);
+      color: var(--text-dim);
+      border-radius: 2rem;
+      text-decoration: none;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: border-color 0.3s, color 0.3s;
+    }
+    .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 3rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-dim);
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0;
+      animation: fadeIn 1s 2s forwards;
+    }
+    .scroll-line {
+      width: 1px; height: 48px;
+      background: linear-gradient(to bottom, var(--gold-dim), transparent);
+      animation: scrollPulse 2s 2s infinite;
+    }
+
+    /* ── About ── */
+    #about {
+      padding: 10rem 2rem;
+      max-width: 960px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    #about .label { margin-bottom: 1.5rem; display: block; }
+    #about h2 { margin-bottom: 2rem; }
+    #about p {
+      color: var(--text-dim);
+      font-size: 1.1rem;
+      max-width: 680px;
+      margin: 0 auto 1.4rem;
+      font-weight: 300;
+    }
+    #about p strong { color: var(--text); font-weight: 400; }
+
+    .divider {
+      width: 60px; height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      margin: 4rem auto;
+    }
+
+    /* ── Philosophy ── */
+    #philosophy {
+      padding: 6rem 2rem 10rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    #philosophy .section-header {
+      text-align: center;
+      margin-bottom: 5rem;
+    }
+    #philosophy .label { display: block; margin-bottom: 1rem; }
+
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .pillar {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s, transform 0.6s, border-color 0.4s, background 0.4s;
+    }
+    .pillar.visible { opacity: 1; transform: translateY(0); }
+    .pillar:hover {
+      transform: translateY(-6px);
+      border-color: rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.055);
+    }
+
+    .pillar-icon {
+      font-size: 1.8rem;
+      margin-bottom: 1.4rem;
+      display: block;
+      color: var(--gold);
+    }
+    .pillar h3 { color: var(--text); margin-bottom: 0.8rem; }
+    .pillar p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.8; }
+
+    /* ── Focus Areas ── */
+    #focus {
+      padding: 6rem 2rem 10rem;
+      background: linear-gradient(to bottom, transparent, rgba(108,99,255,0.04), transparent);
+    }
+    #focus .inner { max-width: 1100px; margin: 0 auto; }
+    #focus .section-header { text-align: center; margin-bottom: 5rem; }
+    #focus .label { display: block; margin-bottom: 1rem; }
+
+    .areas {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .area-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 2rem 1.8rem;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s, transform 0.6s, border-color 0.4s;
+    }
+    .area-card.visible { opacity: 1; transform: translateY(0); }
+    .area-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--indigo-dim), transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .area-card:hover::before { opacity: 0.15; }
+    .area-card:hover { border-color: var(--indigo-dim); }
+
+    .area-num {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--indigo);
+      margin-bottom: 1.2rem;
+      display: block;
+    }
+    .area-card h3 { color: var(--text); }
+    .area-card p {
+      margin-top: 0.6rem;
+      font-size: 0.83rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+
+    /* ── Stats ── */
+    #numbers {
+      padding: 6rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 2rem;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 200;
+      color: var(--gold);
+      display: block;
+      letter-spacing: -0.02em;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 0.4rem;
+      display: block;
+    }
+
+    /* ── Contact ── */
+    #contact {
+      padding: 8rem 2rem 10rem;
+      text-align: center;
+    }
+    .contact-glow {
+      position: absolute;
+      width: 50vw; height: 50vw;
+      max-width: 600px; max-height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(201,168,76,0.08), transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    #contact .label { display: block; margin-bottom: 1.5rem; }
+    #contact h2 { margin-bottom: 1.5rem; }
+    #contact .sub {
+      color: var(--text-dim);
+      max-width: 500px;
+      margin: 0 auto 3rem;
+      font-size: 1rem;
+    }
+
+    .contact-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 2rem;
+      padding: 0.9rem 1.8rem;
+      backdrop-filter: blur(12px);
+    }
+    .contact-box a {
+      color: var(--gold);
+      text-decoration: none;
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      transition: color 0.3s;
+    }
+    .contact-box a:hover { color: #e8c870; }
+    .contact-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: pulse 2s infinite;
+    }
+
+    .contact-note {
+      display: block;
+      margin-top: 2rem;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--glass-border);
+      padding: 2.5rem 4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+    footer .logo { font-size: 1rem; }
+    footer p {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 0.6; }
+    }
+    @keyframes scrollPulse {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1);   opacity: 1; }
+      50%       { transform: scale(1.5); opacity: 0.5; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      nav { padding: 1.2rem 1.5rem; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      footer { flex-direction: column; gap: 1rem; text-align: center; padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<!-- Nav -->
+<nav id="nav">
+  <a href="#" class="logo">MU<span>J</span>AKA</a>
+  <a href="#contact" class="nav-cta">Connect</a>
+</nav>
+
+<!-- Hero -->
+<section id="hero">
+  <div class="hero-glow"></div>
+
+  <div class="hero-eyebrow">
+    <span class="label">Early Stage · Angel Investing</span>
+  </div>
+
+  <h1 class="hero-title">We Find<br>the Unfindable.</h1>
+
+  <p class="hero-sub">
+    Mujaka backs the builders others overlook —
+    before the roadmap is clear, before the deck is perfect,
+    before the world catches on.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#about" class="btn-primary">Discover More</a>
+    <a href="#contact" class="btn-ghost">
+      <span>Work With Us</span>
+      <span>→</span>
+    </a>
+  </div>
+
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- About -->
+<section id="about">
+  <span class="label">What We Do</span>
+  <h2>Capital meets conviction.</h2>
+  <div class="divider"></div>
+  <p>
+    Mujaka is a <strong>creative discovery firm</strong> specializing in
+    early-stage enterprise opportunities. We move before the crowd,
+    partner before the pivot, and believe in ideas that feel too early —
+    because they usually aren't.
+  </p>
+  <p>
+    We are not a traditional fund. We are <strong>pattern matchers
+    with unconventional instincts</strong> — part investor, part
+    co-conspirator, fully committed to the founders we choose.
+  </p>
+  <p>
+    We don't wait for warm intros. We seek the signal in the noise.
+  </p>
+</section>
+
+<!-- Philosophy -->
+<section id="philosophy">
+  <div class="section-header">
+    <span class="label">Our Philosophy</span>
+    <h2>Four beliefs.<br>Zero compromises.</h2>
+  </div>
+  <div class="pillars">
+    <div class="pillar">
+      <span class="pillar-icon">◈</span>
+      <h3>We ignite, not just invest.</h3>
+      <p>Capital is the starting line, not the finish. We bring creative energy, network, and obsession alongside every check.</p>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">◉</span>
+      <h3>Uncertainty is the edge.</h3>
+      <p>The most interesting companies live in the uncomfortable space between "too early" and "too late." We live there.</p>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">◇</span>
+      <h3>Founders first. Always.</h3>
+      <p>We choose people before plans. Resilient, curious, slightly unreasonable founders who see a world others haven't yet.</p>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">○</span>
+      <h3>Play the long game.</h3>
+      <p>Patient with vision. Impatient with mediocrity. We back bets that compound over years, not quarters.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Focus Areas -->
+<section id="focus">
+  <div class="inner">
+    <div class="section-header">
+      <span class="label">Where We Play</span>
+      <h2>The territories we explore.</h2>
+    </div>
+    <div class="areas">
+      <div class="area-card">
+        <span class="area-num">01</span>
+        <h3>Deep Tech</h3>
+        <p>Science-first ventures where the moat is years of research, not months of iteration.</p>
+      </div>
+      <div class="area-card">
+        <span class="area-num">02</span>
+        <h3>AI Infrastructure</h3>
+        <p>The invisible plumbing that future intelligence runs on. The picks-and-shovels of the coming era.</p>
+      </div>
+      <div class="area-card">
+        <span class="area-num">03</span>
+        <h3>Creative Tools</h3>
+        <p>Software that amplifies human creativity — making the complex effortless, the invisible visible.</p>
+      </div>
+      <div class="area-card">
+        <span class="area-num">04</span>
+        <h3>Future of Work</h3>
+        <p>How humans and machines collaborate, create, and coordinate — reimagined from first principles.</p>
+      </div>
+      <div class="area-card">
+        <span class="area-num">05</span>
+        <h3>Emerging Markets</h3>
+        <p>Leapfrog opportunities in underserved economies where the next billion users are coming online.</p>
+      </div>
+      <div class="area-card">
+        <span class="area-num">06</span>
+        <h3>The Unexpected</h3>
+        <p>The category we can't name yet. If it surprises us, we're probably interested.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section id="numbers">
+  <div class="stats">
+    <div>
+      <span class="stat-val">∞</span>
+      <span class="stat-label">Curiosity</span>
+    </div>
+    <div>
+      <span class="stat-val">0→1</span>
+      <span class="stat-label">Stage Focus</span>
+    </div>
+    <div>
+      <span class="stat-val">24h</span>
+      <span class="stat-label">Decision Speed</span>
+    </div>
+    <div>
+      <span class="stat-val">100%</span>
+      <span class="stat-label">Commitment</span>
+    </div>
+  </div>
+</section>
+
+<!-- Contact -->
+<section id="contact">
+  <div class="contact-glow"></div>
+  <span class="label">Get In Touch</span>
+  <h2>Building something<br>extraordinary?</h2>
+  <p class="sub">
+    We want to hear about it — even if it's just an idea,
+    even if you think it's too early.
+    Especially then.
+  </p>
+  <div class="contact-box">
+    <div class="contact-dot"></div>
+    <a href="mailto:hello@mujaka.com">hello@mujaka.com</a>
+  </div>
+  <span class="contact-note">
+    No pitch deck required. Just a genuine idea and a stubborn founder.
+  </span>
+</section>
+
+<!-- Footer -->
+<footer>
+  <a href="#" class="logo">MU<span>J</span>AKA</a>
+  <p>© 2025 Mujaka LLC · All rights reserved</p>
+</footer>
+
+<script>
+  // ── Particle system ──
+  const canvas = document.getElementById('canvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function mkParticle() {
+    return {
+      x:  Math.random() * W,
+      y:  Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r:  Math.random() * 1.2 + 0.3,
+      a:  Math.random() * 0.5 + 0.1,
+      hue: Math.random() < 0.5 ? 250 : 43   // indigo or gold
+    };
+  }
+
+  function init() { particles = Array.from({ length: 90 }, mkParticle); }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      p.x = (p.x + p.vx + W) % W;
+      p.y = (p.y + p.vy + H) % H;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${p.hue},60%,65%,${p.a})`;
+      ctx.fill();
+
+      for (let j = i + 1; j < particles.length; j++) {
+        const q   = particles[j];
+        const dx  = p.x - q.x, dy = p.y - q.y;
+        const d   = Math.sqrt(dx * dx + dy * dy);
+        if (d < 130) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(q.x, q.y);
+          ctx.strokeStyle = `hsla(${p.hue},50%,65%,${(1 - d / 130) * 0.12})`;
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+
+  resize(); init(); draw();
+  window.addEventListener('resize', () => { resize(); init(); });
+
+  // ── Scroll nav ──
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  });
+
+  // ── Entrance animations ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.pillar, .area-card').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
